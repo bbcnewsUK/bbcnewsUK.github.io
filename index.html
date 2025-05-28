@@ -40,109 +40,591 @@
         </script><!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CastClick – Tap to Earn</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CastClick</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #1a1a3d, # color2e2e7a);
+            color: #f5f7fa;
+            height: 100vh;
+            overflow: hidden;
+        }
+        h1 {
+            color: #4a90e2;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        #container {
+            padding: 1rem 1rem 4rem 1rem;
+            text-align: center;
+            height: calc(100vh - 5rem);
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+        #tap-button {
+            background: none;
+            border: none;
+            margin-top: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        .tap-button img {
+            width: 50vw;
+            max-width: 200px;
+            height: auto;
+            transition: transform 0.2s ease;
+        }
+        .tap-button img:active {
+            transform: scale(0.95);
+        }
+        .counter {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+        .nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            background-color: #2e2e7a;
+            border-top: 1px solid #4a4a9a;
+        }
+        .nav.hidden {
+            display: none;
+        }
+        .nav button {
+            flex: 1;
+            padding: 1rem;
+            font-size: 1rem;
+            color: #f5f7fa;
+            background: none;
+            border: none;
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            transition: background-color 0.2s ease;
+        }
+        .nav button:hover {
+            background-color: #4a4a9a;
+        }
+        .nav button img {
+            width: 24px;
+            height: 24px;
+        }
+        .page {
+            display: none;
+            height: 100%;
+        }
+        .active {
+            display: block;
+        }
+        .task {
+            margin: 1rem;
+            background: #1a1a3d;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid #4a4a9a;
+        }
+        .task a {
+            color: #4a90e2;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .claim-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-top: 1rem;
+            display: none;
+            transition: background-color 0.2s ease;
+        }
+        .claim-btn:hover {
+            background-color: #27ae60;
+        }
+        .referral {
+            font-size: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .referral code {
+            background: #2e2e7a;
+            padding: 0.5rem;
+            border-radius: 8px;
+            word-break: break-all;
+        }
+        .referral button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .referral button:hover {
+            background-color: #357abd;
+        }
+        .leaderboard, .referral-list, .profile, .users {
+            background: #1a1a3d;
+            padding: 1rem;
+            margin: 1rem;
+            border-radius: 12px;
+            border: 1px solid #4a4a9a;
+        }
+        .leaderboard table, .users table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .leaderboard th, .leaderboard td, .users th, .users td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #4a4a9a;
+        }
+        .leaderboard th, .users th {
+            font-weight: 500;
+            color: #4a90e2;
+        }
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .login-container.hidden {
+            display: none;
+        }
+        .login-card {
+            background: #1a1a3d;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #4a4a9a;
+            text-align: center;
+            max-width: 90%;
+        }
+        .login-button {
+            background-color: #6c5ce7;
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+        .login-button:hover {
+            background-color: #5b4bc4;
+        }
+        .login-button img {
+            width: 24px;
+            height: 24px;
+        }
+        .profile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: 90%;
+            word-break: break-word;
+        }
+        .profile img {
+            width: 50px;
+            border-radius: 50%;
+        }
+        .profile h2 {
+            margin: 0.5rem 0 0;
+            font-size: 1.2rem;
+        }
+        .profile button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .profile button:hover {
+            background-color: #c0392b;
+        }
+    </style>
 </head>
 <body>
-  <div class="header">
-    <button class="profile-btn" onclick="showPage('profile')" id="profileBtn" style="display: none;">
-      <img src="https://iili.io/3mONB4f.png" alt="Farcaster" />
-      <span id="headerUsername">User</span>
-    </button>
-  </div>
-  <div class="popup" id="registerPopup">
-    <div class="popup-card">
-      <h1>Welcome to CastClick</h1>
-      <p>Please register with Farcaster to continue.</p>
-      <button onclick="registerWithFarcaster()">Register with Farcaster</button>
-    </div>
-  </div>
-  <div class="container">
-    <div id="earn" class="page active">
-      <h1>Earn CastCoin</h1>
-      <button class="tap-button" onclick="incrementXP()">
-        <img src="https://iili.io/3mONB4f.png" alt="Tap" />
-      </button>
-      <div class="counter">CAST: <span id="xp">0</span></div>
-    </div>
-
-    <div id="leaderboard" class="page">
-      <h1>Leaderboard</h1>
-      <div class="leaderboard">
-        <table id="leaderboardTable">
-          <tr>
-            <th>Number</th>
-            <th>Username</th>
-            <th>Balance</th>
-          </tr>
-        </table>
-        <small>Updates in real-time</small>
-      </div>
-    </div>
-
-    <div id="referral" class="page">
-      <h1>Referral Board</h1>
-      <div class="referral">
-        Your referral link: <br>
-        <code id="referralLink"></code>
-        <button onclick="copyReferralLink()">Copy Link</button>
-      </div>
-      <div class="referral-list">
-        <p>Total Earned: <span id="refEarn">0</span> CastCoin</p>
-        <p>Referred Users:</p>
-        <ul id="refList"></ul>
-      </div>
-    </div>
-
-    <div id="tasks" class="page">
-      <h1>Daily Tasks</h1>
-      <div class="task">
-        <p>Follow on <a href="https://twitter.com" target="_blank" onclick="trackTask('twitter')">Twitter</a></p>
-      </div>
-      <div class="task">
-        <p>Join <a href="https://t.me" target="_blank" onclick="trackTask('telegram')">Telegram</a></p>
-      </div>
-      <div class="task">
-        <p>Follow on <a href="https://warpcast.com" target="_blank" onclick="trackTask('farcaster')">Farcaster</a></p>
-      </div>
-      <button class="claim-btn" id="claimTask" onclick="claimTask()">Claim Points</button>
-    </div>
-
-    <div id="profile" class="page">
-      <h1>Profile</h1>
-      <div class="profile-card">
-        <div class="username">
-          <img src="https://iili.io/3mONB4f.png" alt="Farcaster" />
-          <span id="username">User</span>
+    <div class="header"></div>
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <h1>Welcome to CastClick</h1>
+            <button class="login-button" onclick="farcasterLogin()">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Farcaster_logo.svg/1024px-Farcaster_logo.svg.png" alt="Farcaster Logo">
+                Sign in with Farcaster
+            </button>
         </div>
-        <p>Balance: <span id="profileBalance">0</span> CAST</p>
-        <p>Referrals: <span id="profileReferrals">0</span></p>
-        <button onclick="logout()">Logout</button>
-      </div>
     </div>
-  </div>
+    <div class="container">
+        <div id="earn" class="page active">
+            <h1>Earn CastCoin</h1>
+            <button class="tap-button" onclick="incrementXP()">
+                <img src="https://iili.io/3mONB4f.png" alt="Tap" />
+            </button>
+            <div class="counter">CAST: <span id="xp">0</span></div>
+        </div>
 
-  <div class="nav hidden" id="navBar">
-    <button onclick="showPage('earn')">
-      <img src="https://iili.io/3mONB4f.png" alt="Earn" /> Earn
-    </button>
-    <button onclick="showPage('leaderboard')">
-      <img src="https://iili.io/3mONB4f.png" alt="Leaderboard" /> Leaderboard
-    </button>
-    <button onclick="showPage('referral')">
-      <img src="https://iili.io/3mONB4f.png" alt="Referral" /> Referral
-    </button>
-    <button onclick="showPage('tasks')">
-      <img src="https://iili.io/3mONB4f.png" alt="Tasks" /> Tasks
-    </button>
-  </div>
+        <div id="leaderboard" class="page">
+            <h1>Leaderboard</h1>
+            <div class="leaderboard">
+                <table id="leaderboardTable">
+                    <tr>
+                        <th>Number</th>
+                        <th>Username</th>
+                        <th>Balance</th>
+                    </tr>
+                </table>
+                <small>Updates in real-time</small>
+            </div>
+        </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js"></script>
-  <script src="script.js"></script>
+        <div id="referral" class="page">
+            <h1>Referral Board</h1>
+            <div class="referral">
+                Your referral link: <br>
+                <code id="referralLink"></code>
+                <button onclick="copyReferralLink()">Copy Link</button>
+            </div>
+            <div class="referral-list">
+                <p>Total Earned: <span id="refEarn">0</span> CastCoin</p>
+                <p>Referred Users:</p>
+                <ul id="refList"></ul>
+            </div>
+        </div>
+
+        <div id="tasks" class="page">
+            <h1>Daily Tasks</h1>
+            <div class="task">
+                <p>Follow on <a href="https://twitter.com" target="_blank" onclick="trackTask('twitter')">Twitter</a></p>
+            </div>
+            <div class="task">
+                <p>Join <a href="https://t.me" target="_blank" onclick="trackTask('telegram')">Telegram</a></p>
+            </div>
+            <div class="task">
+                <p>Follow on <a href="https://warpcast.com" target="_blank" onclick="trackTask('farcaster')">Farcaster</a></p>
+            </div>
+            <button class="claim-btn" id="claimTask" onclick="claimTask()">Claim Points</button>
+        </div>
+
+        <div id="profile" class="page">
+            <h1>Profile</h1>
+            <div class="profile">
+                <img id="userAvatar" src="https://iili.io/3mONB4f.png" alt="Avatar">
+                <h2 id="userName">@username</h2>
+                <p>CastCoin: <span id="profileBalance">0</span></p>
+                <p>Referrals: <span id="profileReferrals">0</span></p>
+                <button class="logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div id="users" class="page">
+            <h1>Users</h1>
+            <div class="users">
+                <table id="usersTable">
+                    <tr>
+                        <th>Farcaster ID</th>
+                        <th>Username</th>
+                        <th>Balance</th>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav hidden" id="navBar">
+        <button onclick="showPage('earn')">
+            <img src="https://iili.io/3mONB4f.png" alt="Earn" /> Earn
+        </button>
+        <button onclick="showPage('leaderboard')">
+            <img src="https://iili.io/3mONB4f.png" alt="Leaderboard" /> Leaderboard
+        </button>
+        <button onclick="showPage('referral')">
+            <img src="https://iili.io/3mONB4f.png" alt="Referral" /> Referral
+        </button>
+        <button onclick="showPage('tasks')">
+            <img src="https://iili.io/3mONB4f.png" alt="Tasks" /> Tasks
+        </button>
+        <button onclick="showPage('users')">
+            <img src="https://iili.io/3mONB4f.png" alt="Users" /> Users
+        </button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyASICdqWjF3bzvtwASwCIXVe0AUfoUeTqU",
+            authDomain: "castclick-cdfeb.firebaseapp.com",
+            projectId: "castclick-cdfeb",
+            storageBucket: "castclick-cdfeb.firebasestorage.app",
+            messagingSenderId: "578052056343",
+            appId: "1:578052056343:web:1042963805caa11f360352"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let xp = 0;
+        let refEarn = 0;
+        let taskClicks = { twitter: 0, telegram: 0, farcaster: 0 };
+        let isRegistered = false;
+
+        async function farcasterLogin() {
+            // Simulate Farcaster login
+            const fid = `fid_${Math.random().toString(36).substring(7)}`;
+            const user = {
+                fid: fid,
+                username: `@farcaster_user_${fid}`,
+                avatar: "https://iili.io/3mONB4f.png",
+                xp: 0,
+                ref: 0,
+                referralCode: fid
+            };
+
+            try {
+                // Save or update user in Firestore
+                await db.collection('users').doc(fid).set(user);
+                localStorage.setItem("userId", user.fid);
+                isRegistered = true;
+                xp = user.xp;
+                refEarn = user.ref * 25;
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('navBar').classList.remove('hidden');
+                document.getElementById('userName').innerText = user.username;
+                document.getElementById('userAvatar').src = user.avatar;
+                document.getElementById('xp').innerText = user.xp;
+                document.getElementById('profileBalance').innerText = user.xp;
+                document.getElementById('profileReferrals').innerText = user.ref;
+                document.getElementById('refEarn').innerText = refEarn;
+                document.getElementById('referralLink').innerText = `${window.location.origin}?ref=${user.referralCode}`;
+                showPage('earn');
+                updateUsersTable();
+                updateLeaderboard();
+            } catch (err) {
+                console.error('Login error:', err);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("userId");
+            isRegistered = false;
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('navBar').classList.add('hidden');
+            showPage('earn');
+        }
+
+        async function incrementXP() {
+            if (!isRegistered) {
+                document.getElementById('loginPage').classList.remove('hidden');
+                return;
+            }
+            xp++;
+            const currentUser = localStorage.getItem("userId");
+            try {
+                await db.collection('users').doc(currentUser).update({ xp });
+                document.getElementById('xp').innerText = xp;
+                document.getElementById('profileBalance').innerText = xp;
+                updateUsersTable();
+                // Leaderboard updates automatically
+            } catch (err) {
+                console.error('XP update error:', err);
+            }
+        }
+
+        function showPage(id) {
+            if (!isRegistered && id !== 'earn') {
+                document.getElementById('loginPage').classList.remove('hidden');
+                return;
+            }
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function trackTask(name) {
+            if (!isRegistered) {
+                document.getElementById('loginPage').classList.remove('hidden');
+                return;
+            }
+            taskClicks[name]++;
+            if (taskClicks.twitter >= 1 && taskClicks.telegram >= 1 && taskClicks.farcaster >= 1 && 
+                (taskClicks.twitter + taskClicks.telegram + taskClicks.farcaster) >= 3) {
+                document.getElementById('claimTask').style.display = 'inline-block';
+            }
+        }
+
+        async function claimTask() {
+            if (!isRegistered) {
+                document.getElementById('loginPage').classList.remove('hidden');
+                return;
+            }
+            xp += 50;
+            const currentUser = localStorage.getItem("userId");
+            try {
+                await db.collection('users').doc(currentUser).update({ xp });
+                document.getElementById('xp').innerText = xp;
+                document.getElementById('profileBalance').innerText = xp;
+                document.getElementById('claimTask').innerText = 'Claimed!';
+                document.getElementById('claimTask').disabled = true;
+                updateUsersTable();
+                // Leaderboard updates automatically
+            } catch (err) {
+                console.error('Task claim error:', err);
+            }
+        }
+
+        function copyReferralLink() {
+            const referralLink = document.getElementById('referralLink').innerText;
+            navigator.clipboard.writeText(referralLink).then(() => {
+                alert('Referral link copied to clipboard!');
+            });
+        }
+
+        async function updateUsersTable() {
+            try {
+                const snapshot = await db.collection('users').get();
+                const users = snapshot.docs.map(doc => doc.data());
+                const table = document.getElementById('usersTable');
+                table.innerHTML = `
+                    <tr>
+                        <th>Farcaster ID</th>
+                        <th>Username</th>
+                        <th>Balance</th>
+                    </tr>
+                    ${users.map(user => `
+                        <tr>
+                            <td>${user.fid}</td>
+                            <td>${user.username}</td>
+                            <td>${user.xp} CAST</td>
+                        </tr>
+                    `).join('')}
+                `;
+            } catch (err) {
+                console.error('Users table error:', err);
+            }
+        }
+
+        function updateLeaderboard() {
+            db.collection('users')
+                .orderBy('xp', 'desc')
+                .limit(20)
+                .onSnapshot((snapshot) => {
+                    const leaderboardData = snapshot.docs.map((doc, index) => ({
+                        number: index + 1,
+                        username: doc.data().username,
+                        balance: doc.data().xp
+                    }));
+                    const table = document.getElementById('leaderboardTable');
+                    table.innerHTML = `
+                        <tr>
+                            <th>Number</th>
+                            <th>Username</th>
+                            <th>Balance</th>
+                        </tr>
+                        ${leaderboardData.map(row => `
+                            <tr>
+                                <td>${row.number}</td>
+                                <td>${row.username}</td>
+                                <td>${row.balance} CAST</td>
+                            </tr>
+                        `).join('')}
+                    `;
+                }, (err) => {
+                    console.error('Leaderboard error:', err);
+                });
+        }
+
+        async function trackReferral() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            const currentUser = localStorage.getItem("userId");
+            if (refCode && currentUser && refCode !== currentUser) {
+                try {
+                    const refDoc = await db.collection('users').doc(refCode).get();
+                    if (refDoc.exists) {
+                        const refCount = (refDoc.data().ref || 0) + 1;
+                        const refXP = (refDoc.data().xp || 0) + 25;
+                        await db.collection('users').doc(refCode).update({
+                            ref: refCount,
+                            xp: refXP
+                        });
+                        document.getElementById('refEarn').innerText = refCount * 25;
+                        document.getElementById('profileReferrals').innerText = refCount;
+                        document.getElementById('refList').innerHTML = Array(refCount).fill().map((_, i) => `<li>@ref${i + 1}</li>`).join('');
+                        updateUsersTable();
+                    }
+                } catch (err) {
+                    console.error('Referral tracking error:', err);
+                }
+            }
+        }
+
+        // Auto login if session exists
+        window.onload = async () => {
+            const currentUser = localStorage.getItem("userId");
+            if (currentUser) {
+                try {
+                    const userDoc = await db.collection('users').doc(currentUser).get();
+                    if (userDoc.exists) {
+                        const user = userDoc.data();
+                        isRegistered = true;
+                        xp = user.xp;
+                        refEarn = user.ref * 25;
+                        document.getElementById('loginPage').classList.add('hidden');
+                        document.getElementById('navBar').classList.remove('hidden');
+                        document.getElementById('userName').innerText = user.username;
+                        document.getElementById('userAvatar').src = user.avatar;
+                        document.getElementById('xp').innerText = user.xp;
+                        document.getElementById('profileBalance').innerText = user.xp;
+                        document.getElementById('profileReferrals').innerText = user.ref;
+                        document.getElementById('refEarn').innerText = refEarn;
+                        document.getElementById('referralLink').innerText = `${window.location.origin}?ref=${user.referralCode}`;
+                        showPage('earn');
+                        updateUsersTable();
+                        updateLeaderboard();
+                        trackReferral();
+                    }
+                } catch (err) {
+                    console.error('Auto login error:', err);
+                }
+            }
+        };
+    </script>
 </body>
 </html>
