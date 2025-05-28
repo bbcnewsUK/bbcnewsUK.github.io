@@ -1,0 +1,148 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CastClick – Tap to Earn</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="header">
+    <button class="profile-btn" onclick="showPage('profile')" id="profileBtn" style="display: none;">
+      <img src="https://iili.io/3mONB4f.png" alt="Farcaster" />
+      <span id="headerUsername">User</span>
+    </button>
+  </div>
+  <div class="popup" id="registerPopup">
+    <div class="popup-card">
+      <h1>Welcome to CastClick</h1>
+      <p>Please register with Farcaster to continue.</p>
+      <button onclick="registerWithFarcaster()">Register with Farcaster</button>
+    </div>
+  </div>
+  <div class="container">
+    <div id="earn" class="page active">
+      <h1>Earn CastCoin</h1>
+      <button class="tap-button" onclick="incrementXP()">
+        <img src="https://iili.io/3mONB4f.png" alt="Tap" />
+      </button>
+      <div class="counter">CAST: <span id="xp">0</span></div>
+    </div>
+
+    <div id="leaderboard" class="page">
+      <h1>Leaderboard</h1>
+      <div class="leaderboard">
+        <table id="leaderboardTable">
+          <tr>
+            <th>Number</th>
+            <th>Username</th>
+            <th>Balance</th>
+          </tr>
+        </table>
+        <small>Updates in real-time</small>
+      </div>
+    </div>
+
+    <div id="referral" class="page">
+      <h1>Referral Board</h1>
+      <div class="referral">
+        Your referral link: <br>
+        <code id="referralLink"></code>
+        <button onclick="copyReferralLink()">Copy Link</button>
+      </div>
+      <div class="referral-list">
+        <p>Total Earned: <span id="refEarn">0</span> CastCoin</p>
+        <p>Referred Users:</p>
+        <ul id="refList"></ul>
+      </div>
+    </div>
+
+    <div id="tasks" class="page">
+      <h1>Daily Tasks</h1>
+      <div class="task">
+        <p>Follow on <a href="https://twitter.com" target="_blank" onclick="trackTask('twitter')">Twitter</a></p>
+      </div>
+      <div class="task">
+        <p>Join <a href="https://t.me" target="_blank" onclick="trackTask('telegram')">Telegram</a></p>
+      </div>
+      <div class="task">
+        <p>Follow on <a href="https://warpcast.com" target="_blank" onclick="trackTask('farcaster')">Farcaster</a></p>
+      </div>
+      <button class="claim-btn" id="claimTask" onclick="claimTask()">Claim Points</button>
+    </div>
+
+    <div id="profile" class="page">
+      <h1>Profile</h1>
+      <div class="profile-card">
+        <div class="username">
+          <img src="https://iili.io/3mONB4f.png" alt="Farcaster" />
+          <span id="username">User</span>
+        </div>
+        <p>Balance: <span id="profileBalance">0</span> CAST</p>
+        <p>Referrals: <span id="profileReferrals">0</span></p>
+        <button onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav hidden" id="navBar">
+    <button onclick="showPage('earn')">
+      <img src="https://iili.io/3mONB4f.png" alt="Earn" /> Earn
+    </button>
+    <button onclick="showPage('leaderboard')">
+      <img src="https://iili.io/3mONB4f.png" alt="Leaderboard" /> Leaderboard
+    </button>
+    <button onclick="showPage('referral')">
+      <img src="https://iili.io/3mONB4f.png" alt="Referral" /> Referral
+    </button>
+    <button onclick="showPage('tasks')">
+      <img src="https://iili.io/3mONB4f.png" alt="Tasks" /> Tasks
+    </button>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
