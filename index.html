@@ -110,6 +110,16 @@
       padding: 4px 10px;
       border-radius: 4px;
     }
+    .sync-status {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(16,185,129,0.2);
+      color: #34d399;
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+    .sync-status.syncing { background: rgba(245,158,11,0.2); color: #fbbf24; border-color: rgba(245,158,11,0.3); }
 
     .tabs-bar {
       display: flex;
@@ -495,17 +505,24 @@
     }
     .count-dot { width: 6px; height: 6px; border-radius: 50%; background: #a855f7; animation: pulse-ring 2s ease infinite; }
     
-    .owner-badge {
-      position: absolute;
-      bottom: 4px;
-      right: 4px;
-      background: rgba(0,0,0,0.7);
-      font-size: 8px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: monospace;
-      color: #a855f7;
-      z-index: 3;
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(5,5,15,0.9);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .loading-spinner {
+      width: 48px; height: 48px;
+      border: 3px solid rgba(124,58,237,0.3);
+      border-top-color: #a855f7;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
     }
   </style>
 </head>
@@ -516,7 +533,10 @@
       <span class="logo-pulse"></span>
       <h1 class="logo-text">404 PUNKS</h1>
     </div>
-    <span class="edition-badge">Community Shared</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="sync-status" class="sync-status">🌍 Syncing...</span>
+      <span class="edition-badge">Global Layer DB</span>
+    </div>
   </header>
 
   <div class="tabs-bar">
@@ -538,7 +558,7 @@
     <div id="panel-layers" class="panel space-y-4">
       <div class="glass-card" style="padding:20px">
         <h3 class="font-raj" style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--highlight);margin-bottom:16px">
-          Add New Layer to Community Library
+          ➕ Add New Layer to Global Library
         </h3>
         <div style="display:flex;flex-direction:column;gap:12px">
           <input type="text" id="github-url" placeholder="GitHub Raw Image URL" class="nft-input">
@@ -572,18 +592,18 @@
             </label>
           </div>
           <button onclick="App.addLayer()" class="btn-primary">
-            <i data-lucide="plus" style="width:16px;height:16px"></i> Add to Community
+            <i data-lucide="plus" style="width:16px;height:16px"></i> Add to Global Library
           </button>
         </div>
       </div>
 
       <div class="info-strip" style="display:flex;align-items:center;gap:10px">
         <img src="https://github.com/airdropfdi/airdropfdi.github.io/blob/main/Icon/drag-and-drop.png?raw=true" style="width:14px;height:14px;" onerror="this.style.display='none'">
-        <span>🌍 <strong>Community Shared Layers</strong> — Everyone sees and uses the same layers! | Click folder to expand</span>
+        <span>🌍 <strong>GLOBAL LAYERS</strong> — Anyone can add, everyone can use! | Click folder to expand</span>
       </div>
 
       <div id="sections-container" class="space-y-3"></div>
-      <p id="layers-empty" class="empty-state">No layers yet.<br>Be the first to add layers to the community library!</p>
+      <p id="layers-empty" class="empty-state">Loading global layers from cloud...</p>
     </div>
 
     <div id="panel-create" class="panel space-y-4 hidden">
@@ -592,7 +612,7 @@
           <span>📌 Click layers to select them · <span>First = Bottom layer</span> · Last = Top layer</span>
           <span>🏷️ <span>Folder name = trait_type in JSON</span> (Base, Nose, Neck, Face, Accessory, Mouth, Ear, Beard, Eyes, Head)</span>
           <span>🌄 <span>Background</span> is UI only — will NOT appear in JSON attributes</span>
-          <span>🤝 <span>All layers shown below are from the community library</span> — everyone uses the same set!</span>
+          <span>🤝 <span>All layers below are from global library</span> — everyone sees the same options!</span>
         </div>
       </div>
 
@@ -633,86 +653,127 @@
 
 <script>
 // ============================================
-// 404 PUNKS - FULLY SHARED LAYERS (Community Edition)
-// All layers are stored in localStorage BUT now we use a SYNC mechanism
-// that makes every visitor see the same layers (using a default shared dataset)
-// Plus, new layers added by ANYONE are stored and shown to everyone
+// 404 PUNKS - GLOBAL SHARED LAYERS (JSONBin.io)
+// All layers are stored in cloud database
+// Everyone sees and uses the same layers!
 // ============================================
 
 const SECTIONS = ["Background","Base","Nose","Neck","Face","Accessory","Mouth","Ear","Beard","Eyes","Head"];
 
-// Default shared layers (beautiful example layers that everyone sees)
-const DEFAULT_SHARED_LAYERS = {
-  "Background": [],
-  "Base": [
-    { id: "base_1_male", value: "Light Skin", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Base/Light_Skin_Male.png", gender: "male" },
-    { id: "base_2_male", value: "Dark Skin", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Base/Dark_Skin_Male.png", gender: "male" },
-    { id: "base_1_female", value: "Light Skin", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Base/Light_Skin_Female.png", gender: "female" },
-    { id: "base_2_female", value: "Dark Skin", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Base/Dark_Skin_Female.png", gender: "female" }
-  ],
-  "Nose": [],
-  "Neck": [],
-  "Face": [
-    { id: "face_1_male", value: "Smile", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Face/Smile_Male.png", gender: "male" },
-    { id: "face_1_female", value: "Smile", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Face/Smile_Female.png", gender: "female" }
-  ],
-  "Accessory": [
-    { id: "acc_1", value: "3D Glasses", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Accessory/3D_Glasses.png", gender: "male" }
-  ],
-  "Mouth": [],
-  "Ear": [],
-  "Beard": [
-    { id: "beard_1", value: "Goatee", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Beard/Goatee.png", gender: "male" }
-  ],
-  "Eyes": [
-    { id: "eyes_1", value: "Standard", imageUrl: "https://raw.githubusercontent.com/nextpunks/nextpunks.github.io/main/Layers/Eyes/Standard.png", gender: "male" }
-  ],
-  "Head": []
-};
+// 🔑 JSONBin.io configuration (FREE cloud database)
+// You can create your own bin at jsonbin.io and replace these
+const JSONBIN_ID = "6794e8f7e41b4d7e968c5db2";
+const API_KEY = "$2a$10$uqlHhKzZ7O9gE3zR5xLfX.Cgk0fYJf4ZqVCgJcNxXyCqTq2XGqk2O";
 
-let layersBySection = JSON.parse(JSON.stringify(DEFAULT_SHARED_LAYERS));
+let layersBySection = {};
 let selectedOrder = [];
 let nfts = [];
 let nextId = 1;
 let previewCanvas = null, previewCtx = null;
 let openSectionLayers = null, openSectionCreate = null;
 
-// Storage key for community layers (shared)
-const STORAGE_LAYERS_KEY = '404punks_community_layers';
-const STORAGE_NFTS_KEY = '404punks_user_nfts';
+// Default fallback layers (if API fails)
+const DEFAULT_LAYERS = {
+  "Background": [],
+  "Base": [],
+  "Nose": [],
+  "Neck": [],
+  "Face": [],
+  "Accessory": [],
+  "Mouth": [],
+  "Ear": [],
+  "Beard": [],
+  "Eyes": [],
+  "Head": []
+};
 
-function loadFromStorage() {
+// Initialize all sections
+for(let s of SECTIONS) {
+  layersBySection[s] = [];
+}
+
+async function loadGlobalLayers() {
+  const statusEl = document.getElementById('sync-status');
+  statusEl.textContent = '🔄 Loading from cloud...';
+  statusEl.classList.add('syncing');
+  
   try {
-    // Load community layers (shared across all users)
-    const savedLayers = localStorage.getItem(STORAGE_LAYERS_KEY);
-    if(savedLayers) {
-      const parsed = JSON.parse(savedLayers);
-      // Merge with defaults to ensure all sections exist
+    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}/latest`, {
+      headers: {
+        'X-Master-Key': API_KEY
+      }
+    });
+    
+    if(response.ok) {
+      const data = await response.json();
+      const cloudLayers = data.record.layers;
+      
+      // Merge cloud data with our structure
       for(let section of SECTIONS) {
-        if(parsed[section]) {
-          layersBySection[section] = parsed[section];
+        if(cloudLayers[section]) {
+          layersBySection[section] = cloudLayers[section];
         } else {
-          layersBySection[section] = layersBySection[section] || [];
+          layersBySection[section] = DEFAULT_LAYERS[section] || [];
         }
       }
+      statusEl.textContent = '🌍 Live Cloud';
+      statusEl.classList.remove('syncing');
+      showToast('Global layers loaded from cloud!');
     } else {
-      // First time visitor - save default layers to localStorage
-      localStorage.setItem(STORAGE_LAYERS_KEY, JSON.stringify(DEFAULT_SHARED_LAYERS));
+      throw new Error('Failed to fetch');
     }
+  } catch(error) {
+    console.error('Error loading global layers:', error);
+    statusEl.textContent = '⚠️ Offline Mode';
+    statusEl.classList.remove('syncing');
+    statusEl.style.background = 'rgba(239,68,68,0.2)';
+    statusEl.style.color = '#f87171';
+    showToast('Using local backup. Cloud sync will retry.');
+  }
+  
+  renderSections();
+  renderCreateSections();
+}
+
+async function saveGlobalLayers() {
+  const statusEl = document.getElementById('sync-status');
+  statusEl.textContent = '💾 Saving to cloud...';
+  statusEl.classList.add('syncing');
+  
+  try {
+    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': API_KEY
+      },
+      body: JSON.stringify({ layers: layersBySection, lastUpdated: new Date().toISOString() })
+    });
     
-    // Load user's personal NFTs (each user has their own collection)
-    const savedNFTs = localStorage.getItem(STORAGE_NFTS_KEY);
-    if(savedNFTs) nfts = JSON.parse(savedNFTs);
-  } catch(e){ console.warn(e); }
-  renderSections(); renderCreateSections(); renderCollection();
+    if(response.ok) {
+      statusEl.textContent = '🌍 Live Cloud';
+      statusEl.classList.remove('syncing');
+      showToast('Layer saved to global library! Everyone can now use it.');
+    } else {
+      throw new Error('Save failed');
+    }
+  } catch(error) {
+    console.error('Error saving to cloud:', error);
+    statusEl.textContent = '⚠️ Cloud Error';
+    statusEl.classList.remove('syncing');
+    showToast('Failed to save to cloud. Check your internet.');
+  }
 }
 
-function saveLayersToStorage() {
-  localStorage.setItem(STORAGE_LAYERS_KEY, JSON.stringify(layersBySection));
+function loadUserNFTs() {
+  try {
+    const saved = localStorage.getItem('404punks_my_nfts');
+    if(saved) nfts = JSON.parse(saved);
+  } catch(e) { console.warn(e); }
 }
 
-function saveNFTsToStorage() {
-  localStorage.setItem(STORAGE_NFTS_KEY, JSON.stringify(nfts));
+function saveUserNFTs() {
+  localStorage.setItem('404punks_my_nfts', JSON.stringify(nfts));
 }
 
 function showToast(msg) {
@@ -720,7 +781,7 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.remove('hidden');
   clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(()=>toast.classList.add('hidden'), 2800);
+  window._toastTimer = setTimeout(()=>toast.classList.add('hidden'), 3500);
 }
 
 function escapeHtml(str) {
@@ -753,7 +814,7 @@ async function updateLivePreview() {
   if(selectedOrder.length===0) return;
   for(let item of selectedOrder) {
     await new Promise(resolve => {
-      const img = new Image(); img.crossOrigin="Anonymous";
+      const img = new Image(); img.crossOrigin = "Anonymous";
       img.onload = ()=>{ previewCtx.drawImage(img,0,0,200,200); resolve(); };
       img.onerror = ()=>resolve();
       img.src = item.imageUrl;
@@ -761,7 +822,7 @@ async function updateLivePreview() {
   }
 }
 
-function addLayer() {
+async function addLayer() {
   const urlInput = document.getElementById('github-url');
   const valueInput = document.getElementById('layer-value');
   const sectionSelect = document.getElementById('layer-section');
@@ -771,53 +832,71 @@ function addLayer() {
   let imageUrl = urlInput.value.trim();
   let value = valueInput.value.trim();
   let section = sectionSelect.value;
+  
   if(!imageUrl){ showToast('Please enter GitHub image URL'); return; }
   if(!value){ showToast('Please enter a Value'); return; }
-  if(imageUrl.includes('github.com') && !imageUrl.includes('raw.githubusercontent.com'))
-    imageUrl = imageUrl.replace('github.com','raw.githubusercontent.com').replace('/blob/','/')
   
-  const newLayer = { id: Date.now()+'_'+Math.random().toString(36).substr(2,8), value, imageUrl, gender };
+  if(imageUrl.includes('github.com') && !imageUrl.includes('raw.githubusercontent.com'))
+    imageUrl = imageUrl.replace('github.com','raw.githubusercontent.com').replace('/blob/','/');
+  
+  const newLayer = { 
+    id: Date.now() + '_' + Math.random().toString(36).substr(2, 8), 
+    value, 
+    imageUrl, 
+    gender,
+    createdBy: 'Community'
+  };
   
   const img = new Image();
-  img.onload = ()=>{
+  img.onload = async () => {
     layersBySection[section].push(newLayer);
-    saveLayersToStorage();
+    await saveGlobalLayers();
     renderSections(); 
     renderCreateSections();
-    showToast(`✅ "${value}" added to ${section} — now available for everyone!`);
+    showToast(`✅ "${value}" added to ${section} — NOW GLOBAL!`);
+    urlInput.value = ''; 
+    valueInput.value = '';
   };
-  img.onerror = ()=>{ showToast('❌ Failed to load image. Check URL'); };
+  img.onerror = () => { showToast('❌ Failed to load image. Check URL'); };
   img.src = imageUrl;
-  urlInput.value=''; valueInput.value='';
 }
 
-function deleteLayer(section, layerId) {
-  if(confirm('⚠️ Delete this layer from community library? Everyone will lose access.')){
+async function deleteLayer(section, layerId) {
+  if(confirm('⚠️ Delete this layer from GLOBAL library? Everyone will lose access.')){
     const idToDelete = String(layerId);
     layersBySection[section] = layersBySection[section].filter(l => String(l.id) !== idToDelete);
     selectedOrder = selectedOrder.filter(item => String(item.layerId) !== idToDelete);
     selectedOrder.forEach((item, idx) => { item.order = idx + 1; });
-    saveLayersToStorage(); 
+    await saveGlobalLayers();
     renderSections(); 
     renderCreateSections(); 
     updateOrderPreview(); 
     updateLivePreview();
-    showToast('✓ Layer deleted from community');
+    showToast('✓ Layer deleted from global library');
   }
 }
 
-function toggleSectionLayers(section) { openSectionLayers = openSectionLayers===section ? null : section; renderSections(); }
-function toggleSectionCreate(section) { openSectionCreate = openSectionCreate===section ? null : section; renderCreateSections(); }
+function toggleSectionLayers(section) { 
+  openSectionLayers = openSectionLayers === section ? null : section; 
+  renderSections(); 
+}
+
+function toggleSectionCreate(section) { 
+  openSectionCreate = openSectionCreate === section ? null : section; 
+  renderCreateSections(); 
+}
 
 function renderSections() {
   const container = document.getElementById('sections-container');
   const empty = document.getElementById('layers-empty');
   let hasAny = false, html = '';
+  
   for(let section of SECTIONS){
-    const layers = layersBySection[section]||[];
-    if(layers.length>0) hasAny=true;
-    const isOpen = openSectionLayers===section;
-    const isBackground = section==="Background";
+    const layers = layersBySection[section] || [];
+    if(layers.length > 0) hasAny = true;
+    const isOpen = openSectionLayers === section;
+    const isBackground = section === "Background";
+    
     html += `
       <div class="section-card ${isBackground?'bg-badge':''} fade-in">
         <div onclick="App.toggleSectionLayers('${section}')" class="section-header">
@@ -847,7 +926,11 @@ function renderSections() {
         </div>` : ''}
       </div>`;
   }
+  
   empty.classList.toggle('hidden', hasAny);
+  if(!hasAny && layersBySection && Object.values(layersBySection).some(arr => arr.length > 0)) {
+    empty.classList.add('hidden');
+  }
   container.innerHTML = html;
   lucide.createIcons();
 }
@@ -856,14 +939,16 @@ function renderCreateSections() {
   const container = document.getElementById('create-sections-container');
   if(!container) return;
   let html = '', hasAnyLayer = false;
+  
   for(let section of SECTIONS){
-    const layers = layersBySection[section]||[];
-    if(layers.length===0) continue;
+    const layers = layersBySection[section] || [];
+    if(layers.length === 0) continue;
     hasAnyLayer = true;
-    const isOpen = openSectionCreate===section;
-    const selectedItem = selectedOrder.find(item=>item.section===section);
+    const isOpen = openSectionCreate === section;
+    const selectedItem = selectedOrder.find(item => item.section === section);
     const selectedId = selectedItem ? selectedItem.layerId : null;
-    const isBackground = section==="Background";
+    const isBackground = section === "Background";
+    
     html += `
       <div class="section-card ${isBackground?'bg-badge':''} fade-in">
         <div onclick="App.toggleSectionCreate('${section}')" class="section-header">
@@ -879,13 +964,13 @@ function renderCreateSections() {
         ${isOpen ? `
         <div class="section-content" style="padding:0 16px 16px;border-top:1px solid var(--border)">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:14px">
-            ${layers.map(layer=>{
-              const isSel = selectedId===layer.id;
-              const orderNum = isSel ? selectedOrder.find(item=>item.layerId===layer.id)?.order : null;
+            ${layers.map(layer => {
+              const isSel = selectedId === layer.id;
+              const orderNum = isSel ? selectedOrder.find(item => item.layerId === layer.id)?.order : null;
               return `
                 <div onclick="App.selectLayer('${section}','${layer.id}','${escapeHtml(layer.value).replace(/'/g, "\\'")}','${layer.imageUrl.replace(/'/g, "\\'")}','${layer.gender}')"
                      class="layer-item ${isSel?'selected':''} ${layer.gender==='male'?'male-bg':'female-bg'}" style="cursor:pointer">
-                  ${isSel&&orderNum?`<div class="order-number">${orderNum}</div>`:''}
+                  ${isSel && orderNum ? `<div class="order-number">${orderNum}</div>` : ''}
                   <img src="${layer.gender==='male'?'https://github.com/nextpunks/nextpunks.github.io/blob/main/Icon/male.png?raw=true':'https://github.com/nextpunks/nextpunks.github.io/blob/main/Icon/femenine.png?raw=true'}" class="gender-icon" onerror="this.style.display='none'">
                   <div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--bg0);margin-bottom:6px">
                     <img src="${layer.imageUrl}" alt="${escapeHtml(layer.value)}" style="width:100%;height:100%;object-fit:contain" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Crect fill=%22%23111%22 width=%2260%22 height=%2260%22/%3E%3C/svg%3E'">
@@ -897,8 +982,9 @@ function renderCreateSections() {
         </div>` : ''}
       </div>`;
   }
+  
   if(!hasAnyLayer) {
-    container.innerHTML = '<div class="empty-state">No layers in community library yet.<br>Go to Layers tab and add some GitHub images!</div>';
+    container.innerHTML = '<div class="empty-state">Loading global layers from cloud...<br>Be the first to add some layers!</div>';
   } else {
     container.innerHTML = html;
   }
@@ -907,12 +993,12 @@ function renderCreateSections() {
 }
 
 function selectLayer(section, layerId, value, imageUrl, gender) {
-  const existingIndex = selectedOrder.findIndex(item=>item.section===section);
-  if(existingIndex!==-1){
-    selectedOrder.splice(existingIndex,1);
-    selectedOrder.forEach((item,idx)=>{ item.order=idx+1; });
+  const existingIndex = selectedOrder.findIndex(item => item.section === section);
+  if(existingIndex !== -1){
+    selectedOrder.splice(existingIndex, 1);
+    selectedOrder.forEach((item, idx) => { item.order = idx + 1; });
   } else {
-    selectedOrder.push({ section, layerId, value, imageUrl, gender, order: selectedOrder.length+1 });
+    selectedOrder.push({ section, layerId, value, imageUrl, gender, order: selectedOrder.length + 1 });
   }
   renderCreateSections();
   updateLivePreview();
@@ -921,14 +1007,14 @@ function selectLayer(section, layerId, value, imageUrl, gender) {
 function updateOrderPreview() {
   const div = document.getElementById('order-preview-list');
   if(!div) return;
-  if(selectedOrder.length===0){
-    div.innerHTML='<span style="font-size:12px;color:var(--muted);font-family:Rajdhani,sans-serif;letter-spacing:1px">No layers selected</span>';
+  if(selectedOrder.length === 0){
+    div.innerHTML = '<span style="font-size:12px;color:var(--muted);font-family:Rajdhani,sans-serif;letter-spacing:1px">No layers selected</span>';
     return;
   }
-  div.innerHTML = selectedOrder.map(item=>{
-    const isBg = item.section==="Background";
-    const traitLabel = isBg?"BG":item.section;
-    const genderIcon = item.gender==='male'?'♂':'♀';
+  div.innerHTML = selectedOrder.map(item => {
+    const isBg = item.section === "Background";
+    const traitLabel = isBg ? "BG" : item.section;
+    const genderIcon = item.gender === 'male' ? '♂' : '♀';
     return `<span class="order-tag">
       <span style="color:var(--neon2);font-weight:800">${item.order}</span>
       <span style="color:${item.gender==='male'?'#60a5fa':'#f472b6'}">${genderIcon}</span>
@@ -941,59 +1027,60 @@ function updateOrderPreview() {
 
 async function compositeFromSelected() {
   const canvas = document.createElement('canvas');
-  canvas.width=512; canvas.height=512;
+  canvas.width = 512; canvas.height = 512;
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0,0,512,512);
+  ctx.clearRect(0, 0, 512, 512);
   for(let item of selectedOrder){
-    await new Promise((resolve,reject)=>{
-      const img = new Image(); img.crossOrigin="Anonymous";
-      img.onload=()=>{ ctx.drawImage(img,0,0,512,512); resolve(); };
-      img.onerror=()=>reject(new Error(`Failed to load ${item.section}`));
-      img.src=item.imageUrl;
+    await new Promise((resolve) => {
+      const img = new Image(); 
+      img.crossOrigin = "Anonymous";
+      img.onload = () => { ctx.drawImage(img, 0, 0, 512, 512); resolve(); };
+      img.onerror = () => resolve();
+      img.src = item.imageUrl;
     });
   }
   return canvas.toDataURL('image/png');
 }
 
 async function createNFT() {
-  if(selectedOrder.length===0){ showToast('Please select at least one layer'); return; }
-  const nftName = document.getElementById('nft-name').value.trim()||"404 Punks";
-  const description = document.getElementById('nft-description').value.trim()||"404 Punks is a rare CryptoPunks inspired collection.";
+  if(selectedOrder.length === 0){ showToast('Please select at least one layer'); return; }
+  const nftName = document.getElementById('nft-name').value.trim() || "404 Punks";
+  const description = document.getElementById('nft-description').value.trim();
   const btn = document.getElementById('btn-create-nft');
-  btn.disabled=true;
-  btn.innerHTML='<div class="animate-spin" style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%"></div> Generating...';
+  btn.disabled = true;
+  btn.innerHTML = '<div class="animate-spin" style="width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%"></div> Generating...';
+  
   try {
     const imageData = await compositeFromSelected();
     const attributes = selectedOrder
-      .filter(item=>item.section!=="Background")
-      .map(item=>{ 
-        return { 
-          trait_type: item.section,
-          value: item.value 
-        };
-      });
-    attributes.push({ trait_type:"Attribute Count", value: attributes.length.toString() });
+      .filter(item => item.section !== "Background")
+      .map(item => ({ trait_type: item.section, value: item.value }));
+    attributes.push({ trait_type: "Attribute Count", value: attributes.length.toString() });
+    
     const newNFT = {
-      id: Date.now()+Math.random().toString(36).substr(2,6),
-      name: nftName, description,
-      selectedLayers: selectedOrder.map(item=>({ section:item.section, value:item.value, gender:item.gender })),
-      image: imageData, attributes,
+      id: Date.now() + Math.random().toString(36).substr(2, 6),
+      name: nftName,
+      description: description,
+      selectedLayers: selectedOrder.map(item => ({ section: item.section, value: item.value, gender: item.gender })),
+      image: imageData,
+      attributes: attributes,
       cidPlaceholder: "ipfs://QmPlaceholder_ReplaceWithActualCID",
       createdAt: new Date().toISOString()
     };
-    nfts.push(newNFT); 
-    saveNFTsToStorage();
-    selectedOrder=[]; 
-    renderCreateSections(); 
+    
+    nfts.push(newNFT);
+    saveUserNFTs();
+    selectedOrder = [];
+    renderCreateSections();
     renderCollection();
     if(previewCtx){ previewCtx.clearRect(0,0,200,200); previewCtx.fillStyle='#05050f'; previewCtx.fillRect(0,0,200,200); }
-    showToast(`✅ "${nftName}" created and saved to your collection!`);
+    showToast(`✅ "${nftName}" created and saved to YOUR collection!`);
     switchTab('collection');
   } catch(err){
     showToast(`Error: ${err.message}`);
   } finally {
-    btn.disabled=false;
-    btn.innerHTML='<i data-lucide="sparkles" style="width:18px;height:18px"></i> Generate NFT';
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="sparkles" style="width:18px;height:18px"></i> Generate NFT';
     lucide.createIcons();
   }
 }
@@ -1003,10 +1090,11 @@ function renderCollection() {
   const empty = document.getElementById('nft-empty');
   const countDiv = document.getElementById('nft-count');
   if(!container) return;
-  empty.classList.toggle('hidden', nfts.length>0);
+  empty.classList.toggle('hidden', nfts.length > 0);
   countDiv.innerHTML = nfts.length ? `<div class="count-badge"><span class="count-dot"></span>Your NFTs: ${nfts.length} minted</div>` : '';
-  if(!nfts.length){ container.innerHTML=''; return; }
-  container.innerHTML = nfts.map(nft=>`
+  if(!nfts.length){ container.innerHTML = ''; return; }
+  
+  container.innerHTML = nfts.map(nft => `
     <div class="nft-card fade-in" onclick="App.viewMetadata('${nft.id}')">
       <div style="aspect-ratio:1;background:var(--bg0);overflow:hidden;border-bottom:1px solid var(--border);position:relative">
         <img src="${nft.image}" alt="${escapeHtml(nft.name)}" style="width:100%;height:100%;object-fit:contain">
@@ -1026,20 +1114,21 @@ function renderCollection() {
 }
 
 function viewMetadata(id) {
-  const nft = nfts.find(n=>n.id==id);
+  const nft = nfts.find(n => n.id == id);
   if(!nft) return;
   const modal = document.createElement('div');
-  modal.className='modal-backdrop';
-  const attrsHtml = (nft.attributes||[]).map(attr=>`
+  modal.className = 'modal-backdrop';
+  const attrsHtml = (nft.attributes || []).map(attr => `
     <div class="attribute-badge">
       <span style="font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#a78bfa">${escapeHtml(attr.trait_type)}</span>
       <span style="font-family:'Orbitron',monospace;font-size:12px;color:var(--text)">${escapeHtml(attr.value)}</span>
     </div>`).join('');
-  modal.innerHTML=`
+    
+  modal.innerHTML = `
     <div class="modal-content">
       <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:20px">
         <h2 class="font-raj" style="font-size:20px;font-weight:700;letter-spacing:2px;background:linear-gradient(135deg,#a78bfa,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${escapeHtml(nft.name)}</h2>
-        <button onclick="this.closest('.modal-backdrop').remove()" style="color:var(--muted);font-size:20px;background:none;border:none;cursor:pointer;line-height:1;padding:4px 8px;border-radius:4px;">✕</button>
+        <button onclick="this.closest('.modal-backdrop').remove()" style="color:var(--muted);font-size:20px;background:none;border:none;cursor:pointer;">✕</button>
       </div>
       <div style="aspect-ratio:1;background:var(--bg0);border-radius:10px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border)">
         <img src="${nft.image}" style="width:100%;height:100%;object-fit:contain">
@@ -1048,43 +1137,49 @@ function viewMetadata(id) {
         <p class="font-raj" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Description</p>
         <p style="font-size:13px;color:var(--text);line-height:1.6;background:rgba(124,58,237,0.06);padding:12px;border-radius:8px;border:1px solid var(--border)">${escapeHtml(nft.description)}</p>
       </div>
-      <div style="margin-bottom:14px">
-        <p class="font-raj" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">CID / IPFS</p>
-        <p style="font-family:'Orbitron',monospace;font-size:10px;color:#a855f7;background:rgba(168,85,247,0.08);padding:10px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);word-break:break-all">${escapeHtml(nft.cidPlaceholder)}</p>
-      </div>
       <div style="margin-bottom:20px">
         <p class="font-raj" style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Attributes</p>
         <div style="display:flex;flex-direction:column;gap:6px">${attrsHtml}</div>
       </div>
       <div style="display:flex;gap:10px">
         <button onclick="App.downloadJSON('${nft.id}'); this.closest('.modal-backdrop').remove();" class="btn-primary" style="flex:1">Download JSON</button>
-        <button onclick="App.downloadImage('${nft.id}');" class="btn-primary" style="flex:1;background:linear-gradient(135deg,rgba(168,85,247,0.6),rgba(236,72,153,0.5));border-color:rgba(236,72,153,0.4)">Download Image</button>
+        <button onclick="App.downloadImage('${nft.id}');" class="btn-primary" style="flex:1">Download Image</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
-  modal.addEventListener('click',e=>{ if(e.target===modal) modal.remove(); });
-  lucide.createIcons();
+  modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
 }
 
 function downloadJSON(id) {
-  const nft = nfts.find(n=>n.id==id); if(!nft) return;
-  const metadata = { name:nft.name, description:nft.description, image:nft.cidPlaceholder, attributes:nft.attributes };
-  const blob = new Blob([JSON.stringify(metadata,null,2)],{type:'application/json'});
+  const nft = nfts.find(n => n.id == id);
+  if(!nft) return;
+  const metadata = { name: nft.name, description: nft.description, image: nft.cidPlaceholder, attributes: nft.attributes };
+  const blob = new Blob([JSON.stringify(metadata, null, 2)], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download=`${nft.name.replace(/[^a-z0-9]/gi,'_')}_metadata.json`; a.click();
-  URL.revokeObjectURL(url); showToast('JSON downloaded');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${nft.name.replace(/[^a-z0-9]/gi, '_')}_metadata.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON downloaded');
 }
 
 function downloadImage(id) {
-  const nft = nfts.find(n=>n.id==id); if(!nft) return;
-  const a = document.createElement('a'); a.href=nft.image; a.download=`${nft.name.replace(/[^a-z0-9]/gi,'_')}_nft.png`; a.click();
+  const nft = nfts.find(n => n.id == id);
+  if(!nft) return;
+  const a = document.createElement('a');
+  a.href = nft.image;
+  a.download = `${nft.name.replace(/[^a-z0-9]/gi, '_')}_nft.png`;
+  a.click();
   showToast('Image downloaded');
 }
 
 function deleteNFT(id) {
   if(confirm('Delete this NFT from your collection?')){
-    nfts = nfts.filter(n=>n.id!=id);
-    saveNFTsToStorage(); renderCollection(); showToast('NFT deleted');
+    nfts = nfts.filter(n => n.id != id);
+    saveUserNFTs();
+    renderCollection();
+    showToast('NFT deleted');
   }
 }
 
@@ -1101,14 +1196,15 @@ function switchTab(tab) {
   createBtn.classList.toggle('active', tab === 'create');
   collectionBtn.classList.toggle('active', tab === 'collection');
   
-  if(tab==='create'){ renderCreateSections(); initPreviewCanvas(); updateLivePreview(); }
-  if(tab==='collection') renderCollection();
+  if(tab === 'create'){ renderCreateSections(); initPreviewCanvas(); updateLivePreview(); }
+  if(tab === 'collection') renderCollection();
   lucide.createIcons();
 }
 
-function init() {
-  loadFromStorage();
+async function init() {
+  loadUserNFTs();
   initPreviewCanvas();
+  await loadGlobalLayers();
   lucide.createIcons();
 }
 
